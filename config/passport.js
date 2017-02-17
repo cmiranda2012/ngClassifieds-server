@@ -16,11 +16,11 @@ module.exports = function(passport) {
       id: jwt_payload.id
     }, function(err, user) {
           
-          if(err) {
+          if (err) {
               return done(err, false);
           }
 
-          if(user) {
+          if (user) {
               done(null, user);
           } else {
               done(null, false);

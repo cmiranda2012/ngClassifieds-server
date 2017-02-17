@@ -9,14 +9,14 @@ require('../config/passport')(passport);
 
 module.exports = function(app) {
 
-// ---------------------Classified Routes---------------------
+    // ---------------------Classified Routes---------------------
     //get all classifieds
     app.get('/api/classifieds', function(req, res) {
 
         Classified.find(function(err, classifieds) {
 
             if (err) {
-                res.send(err)
+                return res.send(err)
             }
 
             res.json(classifieds);
@@ -33,14 +33,14 @@ module.exports = function(app) {
             image: req.body.image
         }, function(err, classified) {
 
-            if(err) {
-                res.send(err);
+            if (err) {
+                return res.send(err);
             }
 
             Classified.find(function(err, classifieds) {
 
-                if(err) {
-                    res.send(err);
+                if (err) {
+                    return res.send(err);
                 }
 
                 res.json(classifieds);
@@ -64,8 +64,8 @@ module.exports = function(app) {
 
         Classified.findOneAndUpdate(query, update, function(err, classified) {
 
-            if(err) {
-                res.send(err);
+            if (err) {
+                return res.send(err);
             }
 
             res.json(classified);
@@ -75,12 +75,12 @@ module.exports = function(app) {
     //delete classified
     app.delete('/api/classifieds/:id', function(req, res) {
 
-        Classified.remove({ 
+        Classified.remove({
             _id: req.params.id
         }, function(err, classified) {
 
-            if(err) {
-                res.send(err);
+            if (err) {
+                return res.send(err);
             }
 
             res.json({
@@ -90,48 +90,48 @@ module.exports = function(app) {
         })
     });
 
-// ------------------------User Routes-------------------------- 
-    
+    // ------------------------User Routes-------------------------- 
+
     //sign up
     app.post('/api/signup', function(req, res) {
-      
-      if (!req.body.name || !req.body.password) {
-        res.json({
-            success: false,
-            msg: 'Username and password are required.'
-        });
-      } else {
-        
-        const newUser = new User({
-            name: req.body.name,
-            password: req.body.password
-        });
 
-        newUser.save(function(err) {
-          
-            if (err) {
-                return res.json({
-                    success: false,
-                    msg: 'Username already exists.'
-                });
-            }
-
+        if (!req.body.name || !req.body.password) {
             res.json({
-                success: true,
-                msg: 'User created.'
+                success: false,
+                msg: 'Username and password are required.'
             });
-        });
-      }
+        } else {
+
+            const newUser = new User({
+                name: req.body.name,
+                password: req.body.password
+            });
+
+            newUser.save(function(err) {
+
+                if (err) {
+                    return res.json({
+                        success: false,
+                        msg: 'Username already exists.'
+                    });
+                }
+
+                res.json({
+                    success: true,
+                    msg: 'User created.'
+                });
+            });
+        }
 
     });
 
     //authentication
     app.post('/api/authenticate', function(req, res) {
-        
+
         User.findOne({
             name: req.body.name
         }, function(err, user) {
-            
+
             if (err) {
                 throw err;
             }
@@ -142,7 +142,7 @@ module.exports = function(app) {
                     msg: 'User not found.'
                 });
             } else {
-                user.matchPassword(req.body.password, function (err, isMatch) {
+                user.matchPassword(req.body.password, function(err, isMatch) {
                     if (isMatch && !err) {
                         const token = jwt.encode(user, config.secret);
                         res.json({
@@ -161,17 +161,19 @@ module.exports = function(app) {
     });
 
     //profile
-    app.get('/api/', passport.authenticate('jwt', { session: false}), function(req, res) {
-        
+    app.get('/api/', passport.authenticate('jwt', {
+        session: false
+    }), function(req, res) {
+
         var token = getToken(req.headers);
-            
+
         if (token) {
             var decoded = jwt.decode(token, config.secret);
-            
+
             User.findOne({
                 name: decoded.name
             }, function(err, user) {
-        
+
                 if (err) {
                     throw err;
                 }
@@ -194,13 +196,14 @@ module.exports = function(app) {
                 msg: 'No token found.'
             });
         }
+        
     });
 
-    const getToken = function (headers) {
-    
+    const getToken = function(headers) {
+
         if (headers && headers.authorization) {
             var split = headers.authorization.split(' ');
-        
+
             if (split.length === 2) {
                 return split[1];
             } else {
