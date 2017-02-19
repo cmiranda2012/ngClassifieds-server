@@ -3,8 +3,9 @@ const mongoose = require('mongoose');
 const morgan = require('morgan');
 const bodyParser = require('body-parser');
 const passport = require('passport');
+const cors = require('cors');
 const config = require('./config/db');
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 8081;
 const app = express();
 
 //--------------------configuration--------------------
@@ -15,6 +16,7 @@ mongoose.connect(config.database);
 //express app
 app.use(morgan('dev'));
 app.use(bodyParser.json());
+app.use(cors());
 
 //passport
 app.use(passport.initialize());
