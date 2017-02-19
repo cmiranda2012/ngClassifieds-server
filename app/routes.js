@@ -2,10 +2,10 @@
 
 const Classified = require('./models/classified');
 const User = require('./models/user');
-const passport = require('passport');
+const passport = require('../config/passport')
 const jwt = require('jwt-simple');
 const config = require('../config/db');
-require('../config/passport')(passport);
+const ExtractJwt = require('passport-jwt').ExtractJwt;
 
 module.exports = function(app) {
 
@@ -21,6 +21,34 @@ module.exports = function(app) {
 
             res.json(classifieds);
         });
+    });
+
+    //get all classifieds per user
+    app.get('/api/myclassifieds', passport.authenticate('jwt', {
+        session: false
+    }), function(req, res) {
+
+        var token = ExtractJwt.fromAuthHeader()(req);
+
+        if (token) {
+            var decoded = jwt.decode(token, config.secret);
+
+            Classified.find({
+                email: decoded.email
+            }, function(err, classifieds) {
+
+                if (err) {
+                    return res.send(err)
+                }
+
+                res.json(classifieds);
+            });
+        } else {
+            return res.status(401).json({
+                success: false,
+                msg: 'Unauthorized.'
+            });
+        }
     });
 
     //create classifieds & returns all classifieds
@@ -198,20 +226,5 @@ module.exports = function(app) {
         }
         
     });
-
-    const getToken = function(headers) {
-
-        if (headers && headers.authorization) {
-            var split = headers.authorization.split(' ');
-
-            if (split.length === 2) {
-                return split[1];
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    };
 
 };
