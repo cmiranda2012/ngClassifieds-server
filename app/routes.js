@@ -51,71 +51,133 @@ module.exports = function(app) {
         }
     });
 
-    //create classifieds & returns all classifieds
-    app.post('/api/classifieds', function(req, res) {
+    //create classifieds & returns classified
+    app.post('/api/classifieds', passport.authenticate('jwt', {
+        session: false
+    }), function(req, res) {
 
-        Classified.create({
-            title: req.body.title,
-            description: req.body.description,
-            price: req.body.price,
-            image: req.body.image
-        }, function(err, classified) {
+        var token = ExtractJwt.fromAuthHeader()(req);
 
-            if (err) {
-                return res.send(err);
+        if (token) {
+            var decoded = jwt.decode(token, config.secret);
+
+            Classified.create({
+                name: `${decoded.firstName} ${decoded.lastName}`,
+                phone: decoded.phone,
+                email: decoded.email,
+                title: req.body.title,
+                description: req.body.description,
+                price: req.body.price,
+                image: req.body.image,
+                category: req.body.category,
+                createdAt: new Date()
+            }, function(err, classified) {
+
+                if (err) {
+                    if (err.name === 'ValidationError') {
+                        return res.status(422).send(err);
+                    }
+
+                    return res.status(500).send(err);
+                }
+
+                res.json(classified);
+            });
+        } else {
+            return res.status(401).json({
+                success: false,
+                msg: 'Unauthorized.'
+            });
+        }
+    });
+
+    //update classified
+    app.put('/api/classifieds/:id', passport.authenticate('jwt', {
+        session: false
+    }), function(req, res) {
+
+        var token = ExtractJwt.fromAuthHeader()(req);
+
+        if (token) {
+            var decoded = jwt.decode(token, config.secret);
+
+            const update = {
+                name: `${decoded.firstName} ${decoded.lastName}`,
+                phone: decoded.phone,
+                email: decoded.email,
+                title: req.body.title,
+                description: req.body.description,
+                price: req.body.price,
+                image: req.body.image,
+                category: req.body.category,
+                updatedAt: new Date()
             }
 
-            Classified.find(function(err, classifieds) {
+            Classified.findByIdAndUpdate(req.params.id, update, function(err, classified) {
+
+                if (err) {
+                    if (err.name === 'CastError' || err.name === 'ValidationError') {
+                        return res.status(422).send(err);
+                    }
+
+                    return res.status(500).send(err);
+                }
+
+                if (!classified) {
+                    return res.status(404).json({
+                        success: false,
+                        msg: 'Classified not found.'
+                    });
+                }
+                console.log('classified', classified);
+
+                res.json(classified);
+            });
+        } else {
+            return res.status(401).json({
+                success: false,
+                msg: 'Unauthorized.'
+            });
+        }
+    });
+
+    //delete classified
+    app.delete('/api/classifieds/:id', passport.authenticate('jwt', {
+        session: false
+    }), function(req, res) {
+
+        var token = ExtractJwt.fromAuthHeader()(req);
+
+        if (token) {
+
+            Classified.findByIdAndRemove(req.params.id, function(err, classified) {
 
                 if (err) {
                     return res.send(err);
                 }
 
-                res.json(classifieds);
+                if (!classified) {
+                    return res.status(404).json({
+                        success: false,
+                        msg: 'Classified not found.'
+                    });
+                }
+
+                Classified.find(function(err, classifieds) {
+
+                    if (err) {
+                        return res.send(err);
+                    }
+
+                    res.json(classifieds);
+                });
             });
-        });
-    });
-
-    //update classified
-    app.put('/api/classifieds/:id', function(req, res) {
-
-        const query = {
-            _id: req.params.id
-        }
-
-        const update = {
-            title: req.body.title,
-            description: req.body.description,
-            price: req.body.price,
-            image: req.body.image
-        }
-
-        Classified.findOneAndUpdate(query, update, function(err, classified) {
-
-            if (err) {
-                return res.send(err);
-            }
-
-            res.json(classified);
-        });
-    });
-
-    //delete classified
-    app.delete('/api/classifieds/:id', function(req, res) {
-
-        Classified.remove({
-            _id: req.params.id
-        }, function(err, classified) {
-
-            if (err) {
-                return res.send(err);
-            }
-
-            res.json({
-                success: true,
-                msg: 'Classified deleted.'
+        } else {
+            return res.status(401).json({
+                success: false,
+                msg: 'Unauthorized.'
             });
-        })
+        }
     });
 
     // ------------------------User Routes-------------------------- 
@@ -226,5 +288,4 @@ module.exports = function(app) {
         }
         
     });
-
 };
