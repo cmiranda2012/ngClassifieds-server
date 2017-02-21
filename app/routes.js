@@ -129,7 +129,6 @@ module.exports = function(app) {
                         msg: 'Classified not found.'
                     });
                 }
-                console.log('classified', classified);
 
                 res.json(classified);
             });
@@ -202,8 +201,6 @@ module.exports = function(app) {
             });
 
             newUser.save(function(err) {
-
-                console.log('err', err);
 
                 if (err) {
                     return res.status(409).json({
@@ -320,7 +317,6 @@ module.exports = function(app) {
 
     //log out
     app.get('/api/logout', function(req, res) {
-
         req.logout();
         res.end();
     });
