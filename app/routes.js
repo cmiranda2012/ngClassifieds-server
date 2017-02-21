@@ -182,110 +182,132 @@ module.exports = function(app) {
 
     // ------------------------User Routes-------------------------- 
 
-    //sign up
-    app.post('/api/signup', function(req, res) {
+    //user register
+    app.post('/api/register', function(req, res) {
 
-        if (!req.body.name || !req.body.password) {
-            res.json({
+        if (!req.body.firstName || !req.body.lastName || !req.body.phone || !req.body.city || !req.body.state || !req.body.email || !req.body.password) {
+            return res.status(400).send({
                 success: false,
-                msg: 'Username and password are required.'
+                msg: 'All fields are required.'
             });
         } else {
-
             const newUser = new User({
-                name: req.body.name,
+                firstName: req.body.firstName,
+                lastName: req.body.lastName,
+                phone: req.body.phone,
+                city: req.body.city,
+                state: req.body.state,
+                email: req.body.email,
                 password: req.body.password
             });
 
             newUser.save(function(err) {
 
+                console.log('err', err);
+
                 if (err) {
-                    return res.json({
+                    return res.status(409).json({
                         success: false,
-                        msg: 'Username already exists.'
+                        msg: 'Email already exist.',
+                        err: err
                     });
                 }
 
-                res.json({
+                res.status(200).json({
                     success: true,
-                    msg: 'User created.'
+                    msg: 'Registration successful.'
                 });
             });
         }
 
     });
 
-    //authentication
-    app.post('/api/authenticate', function(req, res) {
+    //user login
+    app.post('/api/login', function(req, res) {
 
-        User.findOne({
-            name: req.body.name
-        }, function(err, user) {
+        var token = ExtractJwt.fromAuthHeader()(req);
 
-            if (err) {
-                throw err;
-            }
+        if (token) {
+            return res.json({
+                success: true,
+                msg: 'Already logged in.',
+                token: `JWT ${token}`
+            });
+        }
 
-            if (!user) {
-                res.send({
-                    success: false,
-                    msg: 'User not found.'
-                });
-            } else {
-                user.matchPassword(req.body.password, function(err, isMatch) {
-                    if (isMatch && !err) {
-                        const token = jwt.encode(user, config.secret);
-                        res.json({
-                            success: true,
-                            token: `JWT ${token}`
-                        });
-                    } else {
-                        res.send({
-                            success: false,
-                            msg: 'Wrong password.'
-                        });
-                    }
-                });
-            }
-        });
+        if (!req.body.email || !req.body.password) {
+            return res.status(400).json({
+                success: false,
+                msg: 'Email and password are required.'
+            });
+        } else {
+            User.findOne({
+                email: req.body.email
+            }, function(err, user) {
+
+                if (err) {
+                    return res.status(500).end(err);
+                }
+
+                if (!user) {
+                    return res.status(404).json({
+                        success: false,
+                        msg: `User ${req.body.email} not found`
+                    });
+                } else {
+                    user.matchPassword(req.body.password, function(err, isMatch) {
+                        if (!err && isMatch) {
+                            const token = jwt.encode(user, config.secret);
+
+                            return res.json({
+                                success: true,
+                                msg: 'Login successful',
+                                token: `JWT ${token}`
+                            });
+                        } else {
+                            return res.status(401).json({
+                                success: false,
+                                msg: 'Password is incorrect.'
+                            });
+                        }
+                    });
+                }
+            });
+        }
     });
 
-    //profile
-    app.get('/api/', passport.authenticate('jwt', {
+    //user account
+    app.get('/api/account', passport.authenticate('jwt', {
         session: false
     }), function(req, res) {
 
-        var token = getToken(req.headers);
+        var token = ExtractJwt.fromAuthHeader()(req);
 
         if (token) {
             var decoded = jwt.decode(token, config.secret);
 
             User.findOne({
-                name: decoded.name
+                email: decoded.email
             }, function(err, user) {
 
                 if (err) {
-                    throw err;
+                    return res.send(err);
                 }
 
                 if (!user) {
-                    return res.status(403).send({
+                    return res.status(403).json({
                         success: false,
                         msg: 'Authentication failed. User not found.'
                     });
                 } else {
-                    res.json({
-                        success: true,
-                        msg: `User found ${user.name}`
-                    });
+                    return res.json(user);
                 }
             });
         } else {
-            return res.status(403).send({
+            return res.status(401).json({
                 success: false,
-                msg: 'No token found.'
+                msg: 'Unauthorized.'
             });
         }
-        
     });
 };
