@@ -310,4 +310,18 @@ module.exports = function(app) {
             });
         }
     });
+
+    //check if user is logged in
+    app.get('/api/islogged', passport.authenticate('jwt', {
+        session: false
+    }), function(req, res) {
+        res.end();
+    });
+
+    //log out
+    app.get('/api/logout', function(req, res) {
+
+        req.logout();
+        res.end();
+    });
 };
